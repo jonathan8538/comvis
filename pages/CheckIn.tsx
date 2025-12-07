@@ -7,6 +7,9 @@ import { Layout } from '@/components/Layout';
 import { WebcamCapture } from '@/components/WebcamCapture';
 import { BlinkRecorder } from '@/components/BlinkRecorder';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabaseClient';
+import { getEmbedding } from '@/lib/miniFaceNet';
+import { base64ToImageData } from '@/lib/imageHelpers';
 
 type Step = 'face' | 'blink' | 'complete';
 type VerificationStatus = 'idle' | 'verifying' | 'success' | 'failed';
@@ -30,33 +33,30 @@ export default function CheckIn() {
   };
 
   const handleVerifyFace = async () => {
-    if (!capturedFace) return;
+    setFaceStatus("verifying");
     
-    setFaceStatus('verifying');
-    
-    // TODO: Send to your face verification API/model
-    // const result = await verifyFace(capturedFace, user.faceImageUrl);
-    
-    // Simulated verification
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // For demo: randomly succeed (you'll replace with actual verification)
-    const success = Math.random() > 0.2;
-    
-    if (success) {
-      setFaceStatus('success');
-      toast({
-        title: 'Face verified!',
-        description: 'Now please complete the blink verification.',
-      });
-      setTimeout(() => setStep('blink'), 1000);
-    } else {
-      setFaceStatus('failed');
-      toast({
-        title: 'Face verification failed',
-        description: 'Please try again with better lighting.',
-        variant: 'destructive',
-      });
+    try {
+      const img = await base64ToImageData(capturedFace);
+      const embedding = await getEmbedding(img);
+
+      const { data: stored, error } = await supabase
+        .from("user_face_embeddings")
+        .select("embedding")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) throw error;
+
+      const dist = cosineDistance(embedding, stored.embedding);
+
+      if (dist < 0.40) {
+        setFaceStatus("success");
+        setStep("blink");
+      } else {
+        setFaceStatus("failed");
+      }
+    } catch (e) {
+      setFaceStatus("failed");
     }
   };
 

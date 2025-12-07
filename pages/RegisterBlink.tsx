@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { BlinkRecorder } from '@/components/BlinkRecorder';
 import { useAuthContext } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function RegisterBlink() {
   const [recordedVideo, setRecordedVideo] = useState<Blob | null>(null);
@@ -21,34 +22,59 @@ export default function RegisterBlink() {
   const handleRetake = () => {
     setRecordedVideo(null);
   };
+  
 
   const handleSave = async () => {
-    if (!recordedVideo) return;
+    if (!recordedVideo || !user) return;
 
     setIsSaving(true);
+
     try {
-      // TODO: Upload video to Supabase Storage
-      // const { data, error } = await supabase.storage.from('blinks').upload(`${user.id}/blink.webm`, recordedVideo);
-      
-      await updateUserBlink(recordedVideo);
-      
+      // 1. Upload video ke Supabase Storage
+      const fileName = `${user.id}/blink.webm`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("blinks")
+        .upload(fileName, recordedVideo, {
+          cacheControl: "3600",
+          upsert: true, // penting: biar bisa overwrite rekaman
+        });
+
+      if (uploadError) throw uploadError;
+
+      // 2. Ambil public URL-nya
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("blinks").getPublicUrl(fileName);
+
+      // 3. Simpan URL di tabel users
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({ blink_video_url: publicUrl })
+        .eq("id", user.id);
+
+      if (updateError) throw updateError;
+
+      // 4. Update context
+      await updateUserBlink(publicUrl);
+
       toast({
-        title: 'Registration complete!',
-        description: 'You can now use face & blink verification for check-in.',
+        title: "Registration complete!",
+        description: "Your blink pattern has been stored.",
       });
-      
-      navigate('/dashboard');
-    } catch (error) {
+
+      navigate("/dashboard");
+    } catch (err) {
+      console.error(err);
       toast({
-        title: 'Failed to save',
-        description: 'Could not save blink data. Please try again.',
-        variant: 'destructive',
+        title: "Failed to save",
+        description: "Could not save blink data. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsSaving(false);
     }
   };
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-accent/20">
       <Card className="w-full max-w-lg glass">
