@@ -26,10 +26,12 @@ export default function Signup() {
         description: 'Please complete your biometric registration.',
       });
       navigate('/register-face');
-    } catch (error) {
+    } catch (error: any) {
+      console.error("SIGNUP ERROR:", error);
+
       toast({
         title: 'Signup failed',
-        description: 'Could not create account. Please try again.',
+        description: error?.message ?? 'Could not create account. Please try again.',
         variant: 'destructive',
       });
     }
