@@ -38,6 +38,10 @@ export default function RegisterFace() {
       // 2. Generate embedding (MiniFaceNet 256D)
       const embedding = await getEmbedding(imgData);
 
+      console.log("Embedding:", embedding);
+      console.log("Type:", typeof embedding, Array.isArray(embedding));
+
+
       // 3. Save embedding to Supabase
       const { error } = await supabase
         .from("user_face_embeddings")
