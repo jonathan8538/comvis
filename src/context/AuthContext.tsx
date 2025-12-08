@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import type { User } from '@/types';
+import type { User } from 'types';
 import { supabase } from "@/lib/supabaseClient";
 
 

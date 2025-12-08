@@ -61,7 +61,7 @@ export default function RegisterFace() {
       navigate('/register-blink');
 
     } catch (error) {
-      console.error(error);
+      console.error("Supabase error:", error);
       toast({
         title: 'Failed to save',
         description: 'Could not save face data. Please try again.',
