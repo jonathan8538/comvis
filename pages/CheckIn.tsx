@@ -8,7 +8,6 @@ import { WebcamCapture } from '@/components/WebcamCapture';
 import { BlinkRecorder } from '@/components/BlinkRecorder';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabaseClient';
-import { getEmbedding } from '@/lib/miniFaceNet';
 import { base64ToImageData } from '@/lib/imageHelpers';
 
 type Step = 'face' | 'blink' | 'complete';
